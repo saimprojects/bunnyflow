@@ -1,10 +1,18 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "buildCommand": "pnpm --filter @workspace/flow-platform run build",
+  "outputDirectory": "artifacts/flow-platform/dist",
+  "rewrites": [
+    {
+      "source": "/((?!downloads/).*)",
+      "destination": "/index.html"
+    }
+  ],
   "headers": [
     {
       "source": "/downloads/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=3600" }
+        { "key": "Cache-Control", "value": "public, max-age=3600" },
+        { "key": "Content-Disposition", "value": "attachment" }
       ]
     }
   ]
