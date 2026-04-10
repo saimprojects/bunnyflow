@@ -1,6 +1,6 @@
 {
   "buildCommand": "pnpm --filter @workspace/flow-platform run build",
-  "outputDirectory": "artifacts/flow-platform/dist",
+  "outputDirectory": "artifacts/flow-platform/dist/public",
   "rewrites": [
     {
       "source": "/((?!downloads/).*)",
