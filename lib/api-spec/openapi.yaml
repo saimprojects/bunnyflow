@@ -1,0 +1,493 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: BunnyFlow AI Platform API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication
+  - name: credits
+    description: Credits management
+  - name: generations
+    description: AI Generation operations
+  - name: plans
+    description: Subscription plans
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterBody"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout user
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /credits:
+    get:
+      operationId: getCredits
+      tags: [credits]
+      summary: Get user credit balance
+      responses:
+        "200":
+          description: Credit info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditBalance"
+
+  /credits/history:
+    get:
+      operationId: getCreditHistory
+      tags: [credits]
+      summary: Get credit transaction history
+      responses:
+        "200":
+          description: Transaction history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CreditTransaction"
+
+  /generations/stats:
+    get:
+      operationId: getGenerationStats
+      tags: [generations]
+      summary: Get generation statistics for dashboard
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerationStats"
+
+  /generations:
+    get:
+      operationId: getGenerations
+      tags: [generations]
+      summary: Get user's generation history
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [video, image, all]
+            default: all
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Generation list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerationListResponse"
+
+    post:
+      operationId: createGeneration
+      tags: [generations]
+      summary: Submit a new generation request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGenerationBody"
+      responses:
+        "201":
+          description: Generation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Generation"
+        "402":
+          description: Insufficient credits
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /generations/{id}:
+    get:
+      operationId: getGeneration
+      tags: [generations]
+      summary: Get a specific generation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Generation details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Generation"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /plans:
+    get:
+      operationId: getPlans
+      tags: [plans]
+      summary: Get available subscription plans
+      responses:
+        "200":
+          description: Plans list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Plan"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required: [error]
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+
+    RegisterBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        username:
+          type: string
+          minLength: 3
+      required: [email, password, username]
+
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required: [email, password]
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+      required: [user, token]
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        username:
+          type: string
+        plan:
+          type: string
+          enum: [free, basic, pro, starter, ultra, unlimited]
+        credits:
+          type: integer
+        creditsTotal:
+          type: integer
+        planExpiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        daysRemaining:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, email, username, plan, credits, createdAt]
+
+    CreditBalance:
+      type: object
+      properties:
+        total:
+          type: integer
+        used:
+          type: integer
+        remaining:
+          type: integer
+        plan:
+          type: string
+        resetDate:
+          type: string
+          format: date-time
+      required: [total, used, remaining, plan]
+
+    CreditTransaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [credit, debit]
+        amount:
+          type: integer
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, type, amount, description, createdAt]
+
+    CreateGenerationBody:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [video, image]
+        model:
+          type: string
+          enum: [veo3, veo3_fast, imagen4, nano_banana, nano_banana_pro]
+        prompt:
+          type: string
+          minLength: 1
+        aspectRatio:
+          type: string
+          enum: [landscape, portrait, square]
+          default: landscape
+        duration:
+          type: integer
+          description: Duration in seconds for video (1-8)
+          minimum: 1
+          maximum: 8
+      required: [type, model, prompt]
+
+    Generation:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [video, image]
+        model:
+          type: string
+        prompt:
+          type: string
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        resultUrl:
+          type: string
+          nullable: true
+        thumbnailUrl:
+          type: string
+          nullable: true
+        creditsUsed:
+          type: integer
+        aspectRatio:
+          type: string
+        duration:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, type, model, prompt, status, creditsUsed, aspectRatio, createdAt]
+
+    GenerationListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Generation"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required: [items, total, limit, offset]
+
+    GenerationStats:
+      type: object
+      properties:
+        totalGenerations:
+          type: integer
+        videosGenerated:
+          type: integer
+        imagesGenerated:
+          type: integer
+        creditsUsedThisMonth:
+          type: integer
+        recentGenerations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Generation"
+        modelBreakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              model:
+                type: string
+              count:
+                type: integer
+            required: [model, count]
+      required: [totalGenerations, videosGenerated, imagesGenerated, creditsUsedThisMonth, recentGenerations, modelBreakdown]
+
+    Plan:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        price:
+          type: number
+        credits:
+          type: integer
+        features:
+          type: array
+          items:
+            type: string
+        popular:
+          type: boolean
+        color:
+          type: string
+      required: [id, name, price, credits, features, popular, color]

@@ -1,0 +1,133 @@
+{
+  "manifest_version": 3,
+  "name": "BunnyFlow",
+  "version": "3.6.0",
+  "description": "BunnyFlow daily-access session management for Google Flow, Gemini & Whisk.",
+  "permissions": [
+    "cookies",
+    "tabs",
+    "storage",
+    "activeTab",
+    "scripting",
+    "management"
+  ],
+  "host_permissions": [
+    "https://labs.google/*",
+    "https://*.labs.google/*",
+    "https://*.replit.app/*",
+    "https://*.replit.dev/*",
+    "https://accounts.google.com/*",
+    "https://*.google.com/*",
+    "https://whisk.google.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://labs.google/fx/tools/flow*",
+        "https://labs.google/fx/*/tools/flow*"
+      ],
+      "js": [
+        "bf_early.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://labs.google/fx/tools/flow*",
+        "https://labs.google/fx/*/tools/flow*",
+        "https://labs.google/fx/api/auth/signout*"
+      ],
+      "js": [
+        "persistent_lock.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://labs.google/fx/tools/flow*",
+        "https://labs.google/fx/*/tools/flow*"
+      ],
+      "js": [
+        "content.js",
+        "bunny_extra.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://labs.google/fx/api/auth/signout*"
+      ],
+      "js": [
+        "auto_signout.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://labs.google/fx/api/auth/signout*"
+      ],
+      "js": [
+        "auto_signout.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://*.replit.app/*",
+        "https://*.replit.dev/*"
+      ],
+      "js": [
+        "site_bridge.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://labs.google/fx/tools/flow*",
+        "https://labs.google/fx/*/tools/flow*"
+      ],
+      "js": [
+        "bf_watchdog.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://whisk.google.com/*"
+      ],
+      "js": [
+        "whisk_early.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://whisk.google.com/*"
+      ],
+      "js": [
+        "whisk_content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "buildCommand": "pnpm install && pnpm --filter @workspace/flow-platform run build",
+  "outputDirectory": "artifacts/flow-platform/dist/public",
+  "rewrites": [{ "source": "/((?!downloads/).*)", "destination": "/index.html" }],
+  "headers": [
+    {
+      "source": "/downloads/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600" },
+        { "key": "Content-Disposition", "value": "attachment" }
+      ]
+    }
+  ]
+}
