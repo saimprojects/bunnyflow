@@ -50,62 +50,85 @@ function formatUser(user: typeof usersTable.$inferSelect) {
 }
 
 router.post("/auth/register", async (req, res): Promise<void> => {
-  const parsed = RegisterBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Validation error", message: parsed.error.message });
-    return;
-  }
+  try {
+    const parsed = RegisterBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Validation error", message: parsed.error.message });
+      return;
+    }
 
-  const { email, password, username } = parsed.data;
-  const refCode = (req.body.referralCode || req.query.ref || "") as string;
+    const { email, password, username } = parsed.data;
+    const refCode = (req.body.referralCode || req.query.ref || "") as string;
 
-  const existing = await db.select().from(usersTable).where(eq(usersTable.email, email));
-  if (existing.length > 0) {
-    res.status(400).json({ error: "Email already in use", message: "An account with this email already exists" });
-    return;
-  }
+    const existingEmail = await db.select().from(usersTable).where(eq(usersTable.email, email));
+    if (existingEmail.length > 0) {
+      res.status(400).json({
+        error: "Email already in use",
+        message: "An account with this email already exists",
+      });
+      return;
+    }
 
-  let referrerId: number | null = null;
-  if (refCode) {
-    const [referrer] = await db.select({ id: usersTable.id }).from(usersTable)
-      .where(eq(usersTable.referralCode, refCode.toUpperCase()));
-    if (referrer) referrerId = referrer.id;
-  }
+    const existingUsername = await db.select().from(usersTable).where(eq(usersTable.username, username));
+    if (existingUsername.length > 0) {
+      res.status(400).json({
+        error: "Username already in use",
+        message: "An account with this username already exists",
+      });
+      return;
+    }
 
-  const passwordHash = hashPassword(password);
-  const now = new Date();
-  const trialDays = PLAN_DAYS["free"] ?? 1;
-  const planExpiry = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000);
+    let referrerId: number | null = null;
+    if (refCode) {
+      const [referrer] = await db
+        .select({ id: usersTable.id })
+        .from(usersTable)
+        .where(eq(usersTable.referralCode, refCode.toUpperCase()));
 
-  const [user] = await db.insert(usersTable).values({
-    email,
-    username,
-    passwordHash,
-    plan: "free",
-    credits: 0,
-    creditsTotal: 0,
-    lastActiveAt: now,
-    planStartDate: now,
-    planExpiresAt: planExpiry,
-    referredBy: referrerId ?? undefined,
-    tokens: 0,
-  }).returning();
+      if (referrer) referrerId = referrer.id;
+    }
 
-  const referralCode = generateReferralCode(user.username, user.id);
-  await db.update(usersTable).set({ referralCode }).where(eq(usersTable.id, user.id));
+    const passwordHash = hashPassword(password);
+    const now = new Date();
+    const trialDays = PLAN_DAYS["free"] ?? 1;
+    const planExpiry = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000);
 
-  if (referrerId) {
-    await db.insert(referralsTable).values({
-      referrerId,
-      referredUserId: user.id,
-      status: "pending",
+    const [user] = await db.insert(usersTable).values({
+      email,
+      username,
+      passwordHash,
+      plan: "free",
+      credits: 0,
+      creditsTotal: 0,
+      lastActiveAt: now,
+      planStartDate: now,
+      planExpiresAt: planExpiry,
+      referredBy: referrerId ?? undefined,
+      tokens: 0,
+    }).returning();
+
+    const referralCode = generateReferralCode(user.username, user.id);
+    await db.update(usersTable).set({ referralCode }).where(eq(usersTable.id, user.id));
+
+    if (referrerId) {
+      await db.insert(referralsTable).values({
+        referrerId,
+        referredUserId: user.id,
+        status: "pending",
+      });
+    }
+
+    const [updatedUser] = await db.select().from(usersTable).where(eq(usersTable.id, user.id));
+
+    const token = signToken(user.id);
+    res.status(201).json({ user: formatUser(updatedUser), token });
+  } catch (error) {
+    console.error("Register error:", error);
+    res.status(500).json({
+      error: "Registration failed",
+      message: "Server error while creating account",
     });
   }
-
-  const [updatedUser] = await db.select().from(usersTable).where(eq(usersTable.id, user.id));
-
-  const token = signToken(user.id);
-  res.status(201).json({ user: formatUser(updatedUser), token });
 });
 
 router.post("/auth/login", async (req, res): Promise<void> => {
