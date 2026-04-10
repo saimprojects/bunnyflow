@@ -13,12 +13,12 @@ const PLAN_DAYS: Record<string, number> = { free: 1, basic: 15, pro: 30 };
 
 const router: IRouter = Router();
 
-const ADMIN_KEY = process.env.ADMIN_KEY || "flow-admin-2024";
+const ADMIN_KEY = "flow-admin-2024";
 const FLOW_COOKIE_KEY = "FlowCookieEncKey2024!@#SecureX99";
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@bunnyflow.app";
+const ADMIN_EMAIL = "admin@bunnyflow.app";
 const ADMIN_PASS_SALT = "BunnyFlowAdminSalt2024XZ";
-const ADMIN_PASS_HASH = process.env.ADMIN_PASS_HASH || "c99f76e91efbe6e235721b0f0ecec16281be1718302b0d4b0ae4078f26dc2666704ef87576fb00af3ad2b2b8411d57185e3a8a54587d91afd77663a2819818dc";
+const ADMIN_PASS_HASH = "c99f76e91efbe6e235721b0f0ecec16281be1718302b0d4b0ae4078f26dc2666704ef87576fb00af3ad2b2b8411d57185e3a8a54587d91afd77663a2819818dc";
 
 function requireAdmin(req: Request, res: Response, next: () => void): void {
   const key = req.headers["x-admin-key"] || req.body?.adminKey || req.query?.adminKey;
